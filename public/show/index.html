@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Beverage API Tester</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+      background-color: #f8f8f8;
+    }
+    h1, h2, .centered {
+      text-align: center;
+      color: #004d66;
+    }
+    .radio-group {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1em;
+      margin-bottom: 0.5em;
+    }
+    .search-bar {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 2em;
+    }
+    input[type="text"] {
+      padding: 0.5em;
+      width: 200px;
+      margin-right: 1em;
+    }
+    button {
+      padding: 0.5em 1em;
+      background-color: teal;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #006666;
+    }
+    table {
+      width: 90%;
+      margin: 0 auto;
+      border-collapse: collapse;
+      background-color: white;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.6em;
+      text-align: left;
+    }
+    th {
+      background-color: #eee;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>All beverages</h1>
+  <p class="centered"><strong>Name:</strong> ZhaoQiu Ding &nbsp; <strong>BCIT ID:</strong> A01358137</p>
+
+  <div class="radio-group">
+    <label><input type="radio" name="mode" value="all" checked> All</label>
+    <label><input type="radio" name="mode" value="id"> Get by ID</label>
+    <label><input type="radio" name="mode" value="origin"> Origin</label>
+    <label><input type="radio" name="mode" value="type"> Type</label>
+    <label><input type="radio" name="mode" value="ingredient"> Ingredient</label>
+    <label><input type="radio" name="mode" value="calories"> Sorted by Calories</label>
+    <label><input type="radio" name="mode" value="count"> Summary</label>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="inputValue" placeholder="Enter input here" />
+    <button onclick="handleRequest()">Generate</button>
+  </div>
+
+  <!-- <h2 id="outputTitle" class="centered">All beverages</h2> -->
+  <div id="result"></div>
+
+  <script>
+    function getSelectedMode() {
+      return document.querySelector('input[name="mode"]:checked').value;
+    }
+
+    async function handleRequest() {
+      const mode = getSelectedMode();
+      const input = document.getElementById('inputValue').value.trim();
+      let endpoint = '';
+      let title = '';
+
+      switch (mode) {
+        case 'all':
+          endpoint = '/api/beverages';
+          title = 'All beverages';
+          break;
+        case 'id':
+          endpoint = `/api/beverages/${input}`;
+          title = `Beverage with ID: ${input}`;
+          break;
+        case 'origin':
+          endpoint = `/api/beverages/origin/${input}`;
+          title = `Beverages from: ${input}`;
+          break;
+        case 'type':
+          endpoint = `/api/beverages/type/${input}`;
+          title = `Beverages of type: ${input}`;
+          break;
+        case 'ingredient':
+          endpoint = `/api/beverages/ingredient/${input}`;
+          title = `Beverages with ingredient: ${input}`;
+          break;
+        case 'calories':
+          endpoint = '/api/beverages/calories';
+          title = `Beverages sorted by Calories`;
+          break;
+        case 'count':
+          endpoint = '/api/beverages/count/origin';
+          title = `Summary: Beverage count by origin`;
+          break;
+        default:
+          return;
+      }
+
+      document.getElementById('outputTitle').innerText = title;
+
+      try {
+        const res = await fetch(`http://localhost:8000${endpoint}`);
+        const data = await res.json();
+        renderTable(data, mode);
+      } catch (e) {
+        document.getElementById('result').innerHTML = `<p style="color:red; text-align:center;">Error: ${e.message}</p>`;
+      }
+    }
+
+    function renderTable(data, mode) {
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        document.getElementById('result').innerHTML = '<p class="centered">No results found.</p>';
+        return;
+      }
+
+      if (mode === 'count') {
+        // Summary table
+        let rows = Object.entries(data).map(([origin, count]) =>
+          `<tr><td>${origin}</td><td>${count}</td></tr>`
+        ).join('');
+        const header = `<tr><th>Origin</th><th>Count</th></tr>`;
+        document.getElementById('result').innerHTML = `<table>${header}${rows}</table>`;
+      } else {
+        // Beverage data
+        const items = Array.isArray(data) ? data : [data];
+        const keys = ['id', 'name', 'type', 'mainIngredient', 'origin', 'caloriesPerServing'];
+        const header = `<tr>${keys.map(k => `<th>${k.charAt(0).toUpperCase() + k.slice(1)}</th>`).join('')}</tr>`;
+        const rows = items.map(item =>
+          `<tr>${keys.map(k => `<td>${item[k]}</td>`).join('')}</tr>`
+        ).join('');
+        document.getElementById('result').innerHTML = `<table>${header}${rows}</table>`;
+      }
+    }
+  </script>
+
+</body>
+</html>
